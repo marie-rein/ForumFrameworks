@@ -1,0 +1,126 @@
+header {
+  background-color: #050C16;
+}
+
+.contenuLambda {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 20px;
+}
+
+.btn-primary {
+  margin-right: 30px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Jim Nightshade;
+}
+
+footer {
+  background-color: #050C16;
+}
+
+@keyframes showLetters {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.message-container {
+  overflow: hidden;
+}
+
+.message {
+  display: inline-block;
+  animation: showLetters 5s steps(15);
+  overflow: hidden;
+  word-wrap: break-word;
+  font-family: luckiest Guy;
+  font-size: 33px;
+  color: #333333;
+  text-align: center;
+  padding: 20px;
+  background-color: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+.message:hover {
+  color: #DC3545;
+  border-color: #DC3545;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease-in-out;
+}
+
+.card:hover .card-img-top {
+  filter: brightness(80%);
+}
+
+.scrolling-text {
+  color: red;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: scrollLeft 10s linear infinite;
+}
+
+.card-title {
+  font-family: Jim Nightshade;
+  font-size: 30px;
+  color: #050C16;
+  text-align: center;
+  padding: 10px;
+  background-color: #dad5d5;
+  border: 1px solid #050C16;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+.btn-outline-danger {
+  padding: 10px;
+  margin: 10px;
+}
+
+video {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+.contenuAccueil {
+  font-family: Jim Nightshade;
+  font-size: 30px;
+  color: #050C16;
+  text-align: center;
+  padding: 20px;
+  background-color: #7a7475;
+  border: 1px solid #050C16;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.cardEnd {
+  margin-top: 20px;
+  margin-bottom: 40px;
+}
+
+.form-group {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+/*# sourceMappingURL=style.css.map */
+
