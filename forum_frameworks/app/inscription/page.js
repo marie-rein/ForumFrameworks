@@ -49,7 +49,7 @@ export function Inscription() {
         <div className="col-md-6">
           <div className="card border-0 bg-light shadow">
             <div className="card-body p-5">
-              <h2 className="card-title text-center mb-4">Create an Account ToDoList</h2>
+              <h2 className="card-title text-center mb-4">Create an Account FrameWorksFlow</h2>
               <form onSubmit={submitForm}>
                 <div className="form-group">
                   <label htmlFor="email">Email *</label>

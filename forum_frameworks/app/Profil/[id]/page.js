@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import { getStorage, ref, listAll, uploadBytes, getDownloadURL, getMetadata } from "firebase/storage";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from 'react';
+import { use } from 'react'; 
 
 function Profil({ params }) {
     const { auth } = init();
@@ -13,19 +14,20 @@ function Profil({ params }) {
     const storage = getStorage();
     const [isEditing, setIsEditing] = useState(false);
     const user = auth.currentUser;
+    const id = use(params).id;
     const handleEditClick = () => {
         setIsEditing(true);
     };
 
     useEffect(() => {
-        if (!params.id) {
+        if (!id) {
             router.push('../login');
             return;
         }
 
         const fetchLatestProfilePicture = async () => {
             try {
-                const listRef = ref(storage, `${params.id}/ProfilePicture`);
+                const listRef = ref(storage, `${id}/ProfilePicture`);
                 const res = await listAll(listRef);
 
                 if (res.items.length > 0) {
@@ -53,7 +55,7 @@ function Profil({ params }) {
         };
 
         fetchLatestProfilePicture();
-    }, [params.id, router]);
+    }, [id, router]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -67,11 +69,11 @@ function Profil({ params }) {
                 }
 
                 // Upload de l'image
-                const refFile = ref(storage, `${params.id}/ProfilePicture/${imageUpdate.name}`);
+                const refFile = ref(storage, `${id}/ProfilePicture/${imageUpdate.name}`);
                 await uploadBytes(refFile, imageUpdate);
 
                 // Recharger la dernière image après l'upload
-                const listRef = ref(storage, `${params.id}/ProfilePicture`);
+                const listRef = ref(storage, `${id}/ProfilePicture`);
                 const res = await listAll(listRef);
 
                 if (res.items.length > 0) {
@@ -115,40 +117,61 @@ function Profil({ params }) {
             });
     }
 
-
     return (
         <>
             <Header />
             <br />
-            <center><h1><u><mark>My Profile </mark></u></h1></center>
-            <br />
-
-            <div>
-                {imageFiles.map((file, i) => (
-                    <p key={i} className='text-left'>
-                        <b>Profile Picture: </b>
-                        <img src={file} alt="Profile" className='rounded-circle' width={70} height={70} /> <span>  </span>
-                        <button className='btn btn-primary text-center' onClick={handleEditClick}>
-                        Edit
-                    </button>
-                    {isEditing && (
-                        <form onSubmit={handleSubmit}>
-                            <input type="file" name="image" />
-                            <span>  </span>
-                            <button type="submit" className="btn btn-primary btn-block">  Update  </button>
-                        </form>
-                    )}
-                    <br/>
-                    <b>Email: </b>{user.email}
-                    </p>
-                ))}
-                <p className='text-left'> 
-                <button className='btn btn-primary text-center' onClick={logOut}>Log Out</button>
-                </p>
-            </div>
             
+            {/* Titre principal centré avec une meilleure mise en forme */}
+            <div className="text-center mb-4">
+                <h1 className="display-4 text-primary"><u>My Profile</u></h1>
+            </div>
+    
+            {/* Conteneur principal */}
+            <div className="container">
+                {/* Utilisation d'un Card pour afficher les informations du profil */}
+                <div className="card shadow-sm">
+                    <div className="card-body">
+                        {/* Affichage de l'image de profil avec un style amélioré */}
+                        <div className="row mb-3">
+                            <div className="col-md-3 text-center">
+                                <img 
+                                    src={imageFiles.length > 0 ? imageFiles[0] : 'default-profile.png'} 
+                                    alt="Profile" 
+                                    className="rounded-circle img-fluid border" 
+                                    style={{ width: '120px', height: '120px', objectFit: 'cover' }} 
+                                />
+                            </div>
+                            <div className="col-md-9">
+                                <p className="text-muted">{user.email}</p>
+                                
+                                {/* Bouton d'édition */}
+                                <button className="btn btn-primary" onClick={handleEditClick}>
+                                    Edit Profile Picture
+                                </button>
+                                
+                                {/* Formulaire d'édition de la photo de profil */}
+                                {isEditing && (
+                                    <form onSubmit={handleSubmit} className="mt-3">
+                                        <input type="file" name="image" className="form-control" />
+                                        <button type="submit" className="btn btn-success mt-2">Update</button>
+                                    </form>
+                                )}
+                            </div>
+                        </div>
+    
+                        {/* Bouton de déconnexion */}
+                        <div className="text-center mt-4">
+                            <button className="btn btn-danger" onClick={logOut}>
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </>
     );
 }
+    
 
 export default Profil;
