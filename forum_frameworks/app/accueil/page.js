@@ -4,6 +4,7 @@ import Header from '../Components/header';
 import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
+import Headerpublic from '../Components/headerpublic';
 
 function Accueil() {
     const { auth } = init();
@@ -26,7 +27,7 @@ function Accueil() {
 
     return (
         <>
-            <Header />
+            <Headerpublic />
             <br />
             <center><h1><u><mark>My Tasks</mark></u></h1></center>
         </>

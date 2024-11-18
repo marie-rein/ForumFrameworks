@@ -89,13 +89,15 @@ function Header() {
                     <div className={`contenuLambda col-6 col-lg-9 align-items-center collapse navbar-collapse ${menuOpen ? 'show' : ''}`} id="navbarNav ">
                         <ul className="navbar-nav align-items-center col-lg-12 ">
                             <li className="nav-item col-lg-3">
-                                <Link href="/accueil" className="nav-link mx-5">FrameWorksFlow</Link>
+                                <Link href="/accueil" className="nav-link mx-5"> 
+                                    <img src="/images/LogoFWF.png" alt="logoFWF" id="logoFWF"  width={110} height={110} />
+                                </Link>
                             </li>
                             <li className="nav-item col-lg-3">
-                                <Link className="nav-link mx-5" href="../addTask">Topics</Link>
+                                <Link className="nav-link mx-5 text-white" href="../addTask">Topics</Link>
                             </li>
                             <li className="nav-item col-lg-3">
-                                <Link className="nav-link mx-5" href="../addTask">About</Link>
+                                <Link className="nav-link mx-5 text-white" href="../addTask">About</Link>
                             </li>
                             <li className="nav-item col-lg-3">
                                 {user && imageFiles.length > 0 && (
