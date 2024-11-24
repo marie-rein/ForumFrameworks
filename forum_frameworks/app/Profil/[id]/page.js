@@ -1,5 +1,6 @@
 "use client";
-import Header from '@/app/Components/header';
+
+import Headerpublic from '@/app/Components/headerpublic';
 import init from '@/app/common/init';
 import { signOut } from "firebase/auth";
 import { getStorage, ref, listAll, uploadBytes, getDownloadURL, getMetadata } from "firebase/storage";
@@ -119,7 +120,7 @@ function Profil({ params }) {
 
     return (
         <>
-            <Header />
+            <Headerpublic />
             <br />
             
             {/* Titre principal centré avec une meilleure mise en forme */}
@@ -136,7 +137,7 @@ function Profil({ params }) {
                         <div className="row mb-3">
                             <div className="col-md-3 text-center">
                                 <img 
-                                    src={imageFiles.length > 0 ? imageFiles[0] : 'default-profile.png'} 
+                                    src={imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg"} 
                                     alt="Profile" 
                                     className="rounded-circle img-fluid border" 
                                     style={{ width: '120px', height: '120px', objectFit: 'cover' }} 

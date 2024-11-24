@@ -11,7 +11,7 @@ export default function ForumPage() {
         const { db } = init();
 
         const fetchData = async () => {
-            const q = query(collection(db, "GeneralTheme"));
+            const q = query(collection(db, "Forums"));
             const querySnapshot = await getDocs(q);
             const data = querySnapshot.docs.map((doc) => doc.data());
             console.log(data);
@@ -33,11 +33,9 @@ export default function ForumPage() {
       <table className="table table-striped table-hover">
         <thead className="thead-dark">
           <tr>
-            <th>Sujet</th>
+            <th>Forum</th>
             <th>Description</th>
             <th>Topics</th>
-            <th>Posts</th>
-            <th>Dernier post</th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +43,7 @@ export default function ForumPage() {
             <tr key={index}>
               <td>{item.Name}</td>
               <td>{item.Description}</td>
-              <td>{item.DateCreation}</td>
+              <td>{item.TopicCount}</td>
             </tr>
           ))}
         </tbody>

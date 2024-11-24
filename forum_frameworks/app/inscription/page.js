@@ -5,6 +5,8 @@ import init from '../common/init';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 // import ErrorModal from '../Components/modal';
 import { getStorage, ref, uploadBytes } from "firebase/storage";
+import Headerpublic from '../Components/headerpublic';
+
 
 export function Inscription() {
   const { auth } = init();
@@ -43,7 +45,8 @@ export function Inscription() {
     }
   }
 
-  return (
+  return (<>
+    <Headerpublic/>
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6">
@@ -96,6 +99,9 @@ export function Inscription() {
         message={errorMessage}
       /> */}
     </div>
+
+    </>
+
   );
 }
 
