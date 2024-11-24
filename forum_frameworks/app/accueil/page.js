@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import Headerpublic from '../Components/headerpublic';
+import AddTopics from '../AddTopics/page';
 
 function Accueil() {
     const { auth } = init();
@@ -28,8 +29,7 @@ function Accueil() {
     return (
         <>
             <Headerpublic />
-            <br />
-            <center><h1><u><mark>My Tasks</mark></u></h1></center>
+            <AddTopics/>
         </>
     );
 }
