@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
 import { onAuthStateChanged } from "firebase/auth";
-
+import Link from "next/link";
 export default function TopicsPage() {
   const [topics, setTopics] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -164,14 +164,14 @@ const handleEditClick = () => {
 
       </div>
     <div className="container mt-4">
-      <h1>Topics pour le forum {params.id}</h1>
+      <h1>Topics forforum {params.id}</h1>
       <table className="table table-striped table-hover">
         <thead>
           <tr>
             <th>Topics</th>
             <th>Author</th>
-            <th>Created At</th>
             <th>Comments</th>
+            <th>Created At</th>
           </tr>
         </thead>
         <tbody>
@@ -182,12 +182,15 @@ const handleEditClick = () => {
           ) : (
             topics.map((topic, index) => (
               <tr key={index}>
-                <td>{topic.Title}</td>
-                <td>{topic.AuthorId}</td>
+                <td>
+                  <Link href={`/TopicContent/${params.id}/${topic.id}`}>{topic.Title} </Link>
+                </td>
+                <td>{topic.AuthorId}</td>            
+                <td>{topic.CommentCount}</td>
                 <td>{topic.CreatedAt && topic.CreatedAt.toDate
-            ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
-            : "Date inconnue"}</td>
-            <td>{topic.CommentCount}</td>
+                  ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
+                  : topic.CreatedAt}
+                </td>
               </tr>
             ))
           )}
