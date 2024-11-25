@@ -1,7 +1,7 @@
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../common/init';
-import { collection, query, getDocs } from "firebase/firestore";
+import { collection, query, getDocs, addDoc } from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
@@ -16,12 +16,12 @@ export default function TopicsPage() {
   const [content, setContent] = useState('');
   //const [loading, setLoading] = useState(true);
   const params = useParams();
-  const { auth } = init();
+  const { auth, db } = init();
 
   useEffect(() => {
     if (!params.id) return;
 
-    const { db } = init();
+    //const { db } = init();
 
     const fetchTopics = async () => {
       try {
@@ -87,14 +87,15 @@ const handleEditClick = () => {
 
     try {
         // Créer une référence vers la collection 'Topics' dans Firebase
-        const TopicDocRef = collection(db, `Forums/${currentUser.uid}/Topics`);
+        const TopicDocRef = collection(db, `Forums/${params.id}/Topics`);
         
         // Ajouter un nouveau topic dans la collection
-        const docRef = await addDoc(TopicDocRef, {
+        await addDoc(TopicDocRef, {
             Title: title,
             Content: content,
-            AuthorId: currentUser.uid,
+            AuthorId: currentUser.email,
             CreatedAt: new Date(),
+            CommentCount: 0
             // Optionnel : Vous pouvez ajouter d'autres champs ici, comme UpdatedAt, Replies, etc.
         });
 
@@ -102,7 +103,7 @@ const handleEditClick = () => {
         setIsEditing(false);
 
         // Rediriger vers la page du topic nouvellement crian
-        router.push(`/Forums/${currentUser.uid}/Topics/${docRef.id}`);
+       // router.push(`/Forums/${currentUser.uid}/Topics/${docRef.id}`);
     } catch (error) {
         setError('Error adding topic: ' + error.message);
     }
@@ -167,9 +168,10 @@ const handleEditClick = () => {
       <table className="table table-striped table-hover">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Content</th>
+            <th>Topics</th>
+            <th>Author</th>
             <th>Created At</th>
+            <th>Comments</th>
           </tr>
         </thead>
         <tbody>
@@ -181,8 +183,11 @@ const handleEditClick = () => {
             topics.map((topic, index) => (
               <tr key={index}>
                 <td>{topic.Title}</td>
-                <td>{topic.Content}</td>
-                <td>{topic.CreatedAt}</td>
+                <td>{topic.AuthorId}</td>
+                <td>{topic.CreatedAt && topic.CreatedAt.toDate
+            ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
+            : "Date inconnue"}</td>
+            <td>{topic.CommentCount}</td>
               </tr>
             ))
           )}
