@@ -1,6 +1,7 @@
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../../common/init';
+import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
 import { collection, doc, getDocs, getDoc, addDoc } from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
@@ -15,11 +16,16 @@ export default function TopicContent() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [content, setContent] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
+
 
   const { forumId, topicId } = useParams();
   const { auth, db } = init();
-  console.log(forumId);
-  console.log(topicId);
+  let storage; // Declare storage variable outside of initialization
+  useEffect(() => {
+    // Ensure storage is initialized only after Firebase is ready
+    storage = getStorage();
+  }, []);
   useEffect(() => {
     if (!forumId || !topicId) return;
 
@@ -30,10 +36,8 @@ export default function TopicContent() {
 
         if (topicDoc.exists()) {
           setTopic({ id: topicDoc.id, ...topicDoc.data() });
-          console.log(topicDoc.data());
         } else {
           console.error("No topic found with this ID");
-          console.log("No topic found with this ID");
         }
       } catch (error) {
         console.error("Error fetching topic:", error);
@@ -63,10 +67,41 @@ export default function TopicContent() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser || null);
+
+      if (currentUser) {
+        fetchProfilePictures(currentUser);
+      } else {
+        setImageFiles(["/images/profiledefault.jpg"]); // Image par défaut
+      }
     });
 
     return () => unsubscribe();
   }, [auth]);
+
+  const fetchProfilePictures = async (currentUser) => {
+    const listRef = ref(storage, `${currentUser.uid}/ProfilePicture`);
+
+    try {
+      const res = await listAll(listRef);
+      if (res.items.length > 0) {
+        const itemsWithMetadata = await Promise.all(
+          res.items.map(async (itemRef) => {
+            const metadata = await getMetadata(itemRef);
+            return { itemRef, timeCreated: metadata.timeCreated };
+          })
+        );
+
+        itemsWithMetadata.sort((a, b) => new Date(b.timeCreated) - new Date(a.timeCreated));
+        const lastImageUrl = await getDownloadURL(itemsWithMetadata[0].itemRef);
+        setImageFiles([lastImageUrl]);
+      } else {
+        setImageFiles(["/images/profiledefault.jpg"]); // Image par défaut
+      }
+    } catch (error) {
+      console.error("Error fetching profile pictures:", error);
+      setImageFiles(["/images/profiledefault.jpg"]); // Image par défaut en cas d'erreur
+    }
+  };
 
   const handleEditClick = () => {
     if (user) {
@@ -90,11 +125,12 @@ export default function TopicContent() {
         Content: content,
         AuthorId: auth.currentUser.email,
         CreatedAt: new Date(),
+        URLProfile: imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg",
       });
 
-      setContent(''); // Reset du contenu
-      setIsEditing(false); // Fermer le formulaire
-      setError(''); // Réinitialiser les erreurs
+      setContent('');
+      setIsEditing(false);
+      setError('');
 
       // Recharger les commentaires
       const querySnapshot = await getDocs(commentsRef);
@@ -112,54 +148,41 @@ export default function TopicContent() {
     <>
       <Headerpublic />
       <div className="container mt-4">
-        <div className='row'>
-          <div className='col-md-6'>
-            <button className="btn btn-primary" onClick={handleEditClick}>
-              Add new comment
-            </button>
-          </div>
-          <div className='col-md-6'>
-            <div className='col-md-5'>
-              <input type="text" className="form-control" placeholder="Search..." />
-            </div>
-            <div className='col-md-1'>
-              <button className="btn btn-primary">Search</button>
-            </div>
-          </div>
-        </div>
-
+        <button className="btn btn-primary" onClick={handleEditClick}>
+          Add new comment
+        </button>
         {isEditing && (
-          <div className="container mt-4">
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="Content">Comment</label>
-                <textarea
-                  className="form-control"
-                  id="content"
-                  value={content}
-                  onChange={(event) => setContent(event.target.value)}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">
-                Add
-              </button>
-            </form>
-            {error && <div className="alert alert-danger mt-3">{error}</div>}
-          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="Content">Comment</label>
+              <textarea
+                className="form-control"
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary">Add</button>
+          </form>
         )}
-
-        <div className="container mt-4">
-          <h1>Topic: {topic?.Title || "Loading..."}</h1>
-          <p>{topic?.Content}</p>
-          <h2>Comments:</h2>
-          <ul>
-            {comments.map((comment) => (
-              <li key={comment.id}>
-                <strong>{comment.AuthorId}</strong>: {comment.Content}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {error && <div className="alert alert-danger mt-3">{error}</div>}
+        <h1>Topic: {topic?.Title || "Loading..."}</h1>
+        <p>{topic?.Content}</p>
+        <h2>Comments:</h2>
+        <ul>
+          {comments.map((comment) => (
+            <li key={comment.id}>
+              <img
+                src={comment.URLProfile || "/images/profiledefault.jpg"}
+                alt="Profile"
+                className="rounded-circle"
+                width={40}
+                height={40}
+              />
+              <strong>{comment.AuthorId}</strong>: {comment.Content}
+            </li>
+          ))}
+        </ul>
       </div>
     </>
   );
