@@ -2,6 +2,13 @@ header {
   background-color: #4d5061;
 }
 
+.disabled-link {
+  pointer-events: none;
+  color: red; /* Changer la couleur pour montrer qu'il est désactivé */
+  text-decoration: none;
+  
+}
+
 .contenuLambda {
   font-family: "Times New Roman", Times, serif;
   font-size: 20px;
