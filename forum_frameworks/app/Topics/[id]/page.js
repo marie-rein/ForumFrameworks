@@ -1,12 +1,15 @@
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../common/init';
-import { collection, query, getDocs, addDoc } from "firebase/firestore";
+import { collection, query, getDocs, addDoc , deleteDoc, doc,getDoc} from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
 import { onAuthStateChanged } from "firebase/auth";
-import Link from "next/link";
+
+import Link from 'next/link';
+import { serverTimestamp } from "firebase/firestore";
+
 export default function TopicsPage() {
   const [topics, setTopics] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -14,14 +17,13 @@ export default function TopicsPage() {
   const [user, setUser] = useState(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  //const [loading, setLoading] = useState(true);
   const params = useParams();
   const { auth, db } = init();
 
   useEffect(() => {
     if (!params.id) return;
 
-    //const { db } = init();
+  // logic pour recuperer les topics
 
     const fetchTopics = async () => {
       try {
@@ -34,21 +36,15 @@ export default function TopicsPage() {
         }));
 
         setTopics(topicsData);
-        //setLoading(false);
       } catch (error) {
         console.error("Erreur lors de la récupération des topics :", error);
-        //setLoading(false);
       }
     };
 
     fetchTopics();
   }, [params.id]); 
 
-  // if (loading) {
-  //   return <div className="container mt-4">Chargement des topics...</div>;
-  // }
-
-  //Add new topic logic
+  //logic pour ajouter un topic
 
   useEffect(() => {
 
@@ -65,6 +61,8 @@ export default function TopicsPage() {
 
     return () => unsubscribe(); // Nettoyage lors de la fin de l'utilisation
 }, [auth]);
+
+  //logic pour le mode d'edition d'un topic et la suppression
 const handleEditClick = () => {
   if (user) {
     setIsEditing(true);
@@ -75,7 +73,9 @@ const handleEditClick = () => {
     console.log("You must be logged in to add a topic.");
   }
 };
-  const handleSubmit = async (e) => {
+
+//logic pour ajouter un topic
+const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!auth.currentUser) {
@@ -90,23 +90,91 @@ const handleEditClick = () => {
         const TopicDocRef = collection(db, `Forums/${params.id}/Topics`);
         
         // Ajouter un nouveau topic dans la collection
-        await addDoc(TopicDocRef, {
-            Title: title,
-            Content: content,
-            AuthorId: currentUser.email,
-            CreatedAt: new Date(),
-            CommentCount: 0
-            // Optionnel : Vous pouvez ajouter d'autres champs ici, comme UpdatedAt, Replies, etc.
+        const docRef = await addDoc(TopicDocRef, {
+          Title: title,
+          Content: content,
+          AuthorId: currentUser.email,
+          CreatedAt: serverTimestamp(),
+          CommentCount: 0,
         });
 
+
+        const addedDoc = await getDoc(docRef);
+        const addedData = addedDoc.data();
+
+    // Créer un nouvel objet topic avec les données retournées
+          const newTopic = {
+            id: docRef.id, // Utiliser l'ID du document créé
+            Title: addedData.Title,
+            Content: addedData.Content,
+            AuthorId: addedData.AuthorId,
+            CreatedAt: addedData.CreatedAt, // Timestamp correct depuis Firebase
+            CommentCount: addedData.CommentCount,
+          };
+
+        // Mettre à jour la liste des topics automatiquement
+        setTopics((prevTopics) => [...prevTopics, newTopic]);
        //fermer le formulaire
         setIsEditing(false);
 
-        // Rediriger vers la page du topic nouvellement crian
-       // router.push(`/Forums/${currentUser.uid}/Topics/${docRef.id}`);
     } catch (error) {
         setError('Error adding topic: ' + error.message);
     }
+};
+
+//logic pour supprimer un topic
+const handleDelete = async (topicId) => {
+  if (!topicId) return;
+
+  // Vérifier si l'utilisateur est connecté
+  if (!auth.currentUser) {
+    alert("You must be logged in to delete a topic.");
+    return;
+  }
+
+  const currentUserEmail = auth.currentUser.email;
+
+  // Demander une confirmation
+  const isConfirmed = window.confirm("Êtes-vous sûr de vouloir supprimer ce topic ?");
+  if (!isConfirmed) return;
+
+  try {
+    // Référence du document Firestore
+    const topicDocRef = doc(db, `Forums/${params.id}/Topics/${topicId}`);
+
+    // Récupérer les données du topic
+    const topicDoc = await getDoc(topicDocRef);
+    if (!topicDoc.exists()) {
+      alert("Topic introuvable.");
+      return;
+    }
+
+    const topicData = topicDoc.data();
+    
+    // Vérifier que l'utilisateur est bien l'auteur
+    if (topicData.AuthorId.trim() !== currentUserEmail.trim()) {
+     
+      alert("Vous n'avez pas la permission de supprimer ce topic.");
+      return;
+    }
+    
+
+    // Supprimer le topic
+    await deleteDoc(topicDocRef);
+
+    // Mettre à jour la liste des topics automatiquement
+    setTopics((prevTopics) => prevTopics.filter((topic) => topic.id !== topicId));
+
+    alert("Topic supprimé avec succès !");
+  } catch (error) {
+    console.error("Erreur lors de la suppression du topic :", error);
+
+    if (error.code === "permission-denied") {
+      alert("Vous n'avez pas la permission de supprimer ce topic.");
+    } else {
+      alert("Impossible de supprimer le topic. Veuillez réessayer.");
+    }
+  }
 };
 
   return (
@@ -155,6 +223,9 @@ const handleEditClick = () => {
            <button type="submit" className="btn btn-primary">
             Add topic
            </button>
+           <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
+              Cancel
+          </button>
        </form>
        {error && <div className="alert alert-danger mt-3">{error}</div>}
    </div>
@@ -188,9 +259,37 @@ const handleEditClick = () => {
                 <td>{topic.AuthorId}</td>            
                 <td>{topic.CommentCount}</td>
                 <td>{topic.CreatedAt && topic.CreatedAt.toDate
-                  ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
-                  : topic.CreatedAt}
-                </td>
+
+            ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
+            : "Date inconnue"}</td>
+            <td>{topic.CommentCount}</td>
+
+                  {/* Lien pour modifier le topic */}
+
+            <td> <Link
+                href={`/ModifierTopic/${params.id}/${topic.id}`}
+                className={user?.email === topic.AuthorId ? "" : "disabled-link"}
+              >
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/84/84380.png"
+                  alt="Edit"
+                  style={{ width: "16px", height: "16px" }}
+                  className='disabled-link'
+                />
+              </Link></td>
+
+                  {/* Lien pour supprimer le topic */}
+            <td><button
+              onClick={() => handleDelete(topic.id)}
+              disabled={user?.email !== topic.AuthorId}
+            >
+             <img
+                  src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png"
+                  alt="Delete"
+                  style={{ width: "16px", height: "16px" }}
+                  className='disabled-link'
+                />
+              </button></td>
               </tr>
             ))
           )}
