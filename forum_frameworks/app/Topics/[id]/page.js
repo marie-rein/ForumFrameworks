@@ -1,7 +1,7 @@
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../common/init';
-import { collection, query, getDocs, addDoc , deleteDoc, doc,getDoc} from "firebase/firestore";
+import { collection, query, getDocs, addDoc , deleteDoc, doc,getDoc, updateDoc} from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
@@ -73,6 +73,41 @@ const handleEditClick = () => {
     console.log("You must be logged in to add a topic.");
   }
 };
+const updateTopicCount = async (increment) => {
+  try {
+    // Référence vers le document Forum
+    const forumDocRef = doc(db, `Forums/${params.id}`);
+    
+    // Récupération du document actuel
+    const forumDoc = await getDoc(forumDocRef);
+    
+    if (!forumDoc.exists()) {
+      console.error("Forum not found.");
+      return;
+    }
+
+    // Récupérer la valeur actuelle de TopicCount
+    const forumData = forumDoc.data();
+    const currentCount = forumData.TopicCount || 0;
+
+    // Calcul de la nouvelle valeur
+    const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+    // Mettre à jour la valeur de TopicCount dans Firestore
+    await updateDoc(forumDocRef, { TopicCount: newCount });
+
+    // Mise à jour locale (optionnel)
+    setTopics((prevTopics) => prevTopics.map((topic) =>
+      topic.id === params.id
+        ? { ...topic, TopicCount: newCount }
+        : topic
+    ));
+    
+    console.log(`TopicCount updated to ${newCount}`);
+  } catch (error) {
+    console.error("Error updating TopicCount:", error);
+  }
+};
 
 //logic pour ajouter un topic
 const handleSubmit = async (e) => {
@@ -117,6 +152,7 @@ const handleSubmit = async (e) => {
        //fermer le formulaire
         setIsEditing(false);
 
+        updateTopicCount(true);
     } catch (error) {
         setError('Error adding topic: ' + error.message);
     }
@@ -135,7 +171,7 @@ const handleDelete = async (topicId) => {
   const currentUserEmail = auth.currentUser.email;
 
   // Demander une confirmation
-  const isConfirmed = window.confirm("Êtes-vous sûr de vouloir supprimer ce topic ?");
+  const isConfirmed = window.confirm("Are you sure you want to delete this topic?");
   if (!isConfirmed) return;
 
   try {
@@ -145,7 +181,7 @@ const handleDelete = async (topicId) => {
     // Récupérer les données du topic
     const topicDoc = await getDoc(topicDocRef);
     if (!topicDoc.exists()) {
-      alert("Topic introuvable.");
+      alert("Topic not found.");
       return;
     }
 
@@ -154,7 +190,7 @@ const handleDelete = async (topicId) => {
     // Vérifier que l'utilisateur est bien l'auteur
     if (topicData.AuthorId.trim() !== currentUserEmail.trim()) {
      
-      alert("Vous n'avez pas la permission de supprimer ce topic.");
+      alert("You do not have permission to delete this topic.");
       return;
     }
     
@@ -165,14 +201,15 @@ const handleDelete = async (topicId) => {
     // Mettre à jour la liste des topics automatiquement
     setTopics((prevTopics) => prevTopics.filter((topic) => topic.id !== topicId));
 
-    alert("Topic supprimé avec succès !");
+    alert("Topic deleted successfully!");
+    updateTopicCount(false);
   } catch (error) {
-    console.error("Erreur lors de la suppression du topic :", error);
+    console.error("Error deleting topic:", error);
 
     if (error.code === "permission-denied") {
-      alert("Vous n'avez pas la permission de supprimer ce topic.");
+      alert("You do not have permission to delete this topic.");
     } else {
-      alert("Impossible de supprimer le topic. Veuillez réessayer.");
+      alert("Failed to delete topic. Please try again.");
     }
   }
 };
@@ -221,7 +258,7 @@ const handleDelete = async (topicId) => {
                />
            </div>
            <button type="submit" className="btn btn-primary">
-            Add topic
+            Add 
            </button>
            <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
               Cancel
@@ -243,6 +280,7 @@ const handleDelete = async (topicId) => {
             <th>Author</th>
             <th>Comments</th>
             <th>Created At</th>
+      
           </tr>
         </thead>
         <tbody>
@@ -261,8 +299,7 @@ const handleDelete = async (topicId) => {
                 <td>{topic.CreatedAt && topic.CreatedAt.toDate
 
             ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
-            : "Date inconnue"}</td>
-            <td>{topic.CommentCount}</td>
+            : "Date inconnue"}</td>   
 
                   {/* Lien pour modifier le topic */}
 

@@ -2,7 +2,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../../common/init';
 import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
-import { collection, doc, getDocs, getDoc, addDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, addDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
@@ -103,6 +103,83 @@ export default function TopicContent() {
     }
   };
 
+  //Fonction permettant la mise à jour du nombre de commentaires
+  const updateCommentCount = async (increment) => {
+    try {
+      const topicDocRef = doc(db, `Forums/${forumId}/Topics/${topicId}`);
+      await getDoc(topicDocRef); // Vérifie si le document existe
+      await updateDoc(topicDocRef, {
+        CommentCount: increment ? topic.CommentCount + 1 : Math.max(0, topic.CommentCount - 1),
+      });
+  
+      // Met à jour localement le topic pour éviter de refetcher  
+      setTopic((prevTopic) => ({
+        ...prevTopic,
+        CommentCount: increment
+          ? prevTopic.CommentCount + 1
+          : Math.max(0, prevTopic.CommentCount - 1),
+      }));
+    } catch (error) {
+      console.error("Error updating commentCount:", error);
+    }
+  };
+  
+  const handleDelete = async (commentId) => {
+    if (!commentId) return;
+  
+    // Vérifier si l'utilisateur est connecté
+    if (!auth.currentUser) {
+      alert("You must be logged in to delete a comment.");
+      return;
+    }
+  
+    const currentUserEmail = auth.currentUser.email;
+  
+    // Demander une confirmation
+    const isConfirmed = window.confirm("Are you sure you want to delete this comment?");
+    if (!isConfirmed) return;
+  
+    try {
+      // Référence du document Firestore
+      const commentDocRef = doc(db, `Forums/${forumId}/Topics/${topicId}/Comments/${commentId}`);
+  
+      // Récupérer les données du topic
+      const commentDoc = await getDoc(commentDocRef);
+      if (!commentDoc.exists()) {
+        alert("Comment not found.");
+        return;
+      }
+  
+      const commentData = commentDoc.data();
+      
+      // Vérifier que l'utilisateur est bien l'auteur
+      if (commentData.AuthorId.trim() !== currentUserEmail.trim()) {
+       
+        alert("You do not have permission to delete this comment.");
+        return;
+      }
+      
+  
+      // Supprimer le topic
+      await deleteDoc(commentDocRef);
+  
+      // Mettre à jour la liste des topics automatiquement
+      setComments ((prevComments) => prevComments.filter((comment) => comment.id !== commentId));
+  
+      alert("Comment deleted successfully.");
+      // decrementer le nombre de commentaires
+      updateCommentCount(false);
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+  
+      if (error.code === "permission-denied") {
+        alert("You do not have permission to delete this comment.");
+      } else {
+        alert("Failed to delete comment. Please try again.");
+      }
+    }
+  };
+
   const handleEditClick = () => {
     if (user) {
       setIsEditing(true);
@@ -139,6 +216,7 @@ export default function TopicContent() {
         ...doc.data(),
       }));
       setComments(commentsData);
+      updateCommentCount(true);
     } catch (error) {
       setError('Error adding comment: ' + error.message);
     }
@@ -162,7 +240,12 @@ export default function TopicContent() {
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
-            <button type="submit" className="btn btn-primary">Add</button>
+            <button type="submit" className="btn btn-primary">
+              Add
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
+              Cancel
+            </button>
           </form>
         )}
         {error && <div className="alert alert-danger mt-3">{error}</div>}
@@ -170,8 +253,8 @@ export default function TopicContent() {
         <p>{topic?.Content}</p>
         <h2>Comments:</h2>
         <ul>
-          {comments.map((comment) => (
-            <li key={comment.id}>
+          {comments.map((comment, index) => (
+            <li key={index}>
               <img
                 src={comment.URLProfile || "/images/profiledefault.jpg"}
                 alt="Profile"
@@ -180,6 +263,17 @@ export default function TopicContent() {
                 height={40}
               />
               <strong>{comment.AuthorId}</strong>: {comment.Content}
+              <button
+              onClick={() => handleDelete(comment.id)}
+              disabled={user?.email !== comment.AuthorId}
+            >
+             <img           
+                  src="/images/recycle.png"
+                  alt="Delete"
+                  style={{ width: "16px", height: "16px" }}
+                  className='disabled-link'
+                />
+              </button>
             </li>
           ))}
         </ul>
