@@ -180,5 +180,42 @@ video {
   color: #60b078;
 }
 
+
+/* style pour le boutton previous page*/
+.btn-professional {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: gray;
+  background-color: #4d5061;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-professional:hover {
+  background-color: #0056b3;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-professional:active {
+  background-color: #004085;
+}
+
+.btn-professional:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);
+}
+
+.icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
 /*# sourceMappingURL=style.css.map */
 

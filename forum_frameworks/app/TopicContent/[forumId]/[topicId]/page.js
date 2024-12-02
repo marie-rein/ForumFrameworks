@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
 import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function TopicContent() {
@@ -17,7 +18,7 @@ export default function TopicContent() {
   const [user, setUser] = useState(null);
   const [content, setContent] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
-
+  const router = useRouter();
 
   const { forumId, topicId } = useParams();
   const { auth, db } = init();
@@ -225,6 +226,11 @@ export default function TopicContent() {
   return (
     <>
       <Headerpublic />
+      <button
+        className="btn btn-professional"
+        onClick={() => router.back()}>
+        <span className="icon">←</span> Return to topics
+      </button>
       <div className="container mt-4">
         <button className="btn btn-primary" onClick={handleEditClick}>
           Add new comment
