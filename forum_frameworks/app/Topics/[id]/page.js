@@ -272,7 +272,6 @@ const handleDelete = async (topicId) => {
 
   return (
     <>
-   
     <Headerpublic />
     <div className="container mt-4">
       <div className='row'>
@@ -323,9 +322,6 @@ const handleDelete = async (topicId) => {
        {error && <div className="alert alert-danger mt-3">{error}</div>}
    </div>
          )}
-
-
-
       </div>
     <div className="container mt-4">
       <h1>Topics for forum {params.id}</h1>
@@ -352,46 +348,43 @@ const handleDelete = async (topicId) => {
                 </td>
                 <td>{topic.AuthorId}</td>            
                 <td>{topic.CommentCount}</td>
-                <td>{topic.CreatedAt && topic.CreatedAt.toDate
-
-            ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
-            : "Date inconnue"}</td>   
+                <td>{topic.CreatedAt && topic.CreatedAt.toDate()
+                    ? topic.CreatedAt.toDate().toLocaleString() // Convertir Timestamp en chaîne lisible
+                    : "Date inconnue"}
+                </td>   
 
                   {/* Lien pour modifier le topic */}
 
-            <td> <Link
-                href={`/ModifierTopic/${params.id}/${topic.id}`}
-                className={user?.email === topic.AuthorId ? "" : "disabled-link"}
-              >
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/84/84380.png"
-                  alt="Edit"
-                  style={{ width: "16px", height: "16px" }}
-                  className='disabled-link'
-                />
-              </Link></td>
+                <td>
+                  {user?.email === topic.AuthorId && (
+                    <Link href={`/ModifierTopic/${params.id}/${topic.id}`} className="btn btn-link">
+                      <img
+                        src="https://cdn-icons-png.flaticon.com/512/84/84380.png"
+                        alt="Edit"
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                    </Link>
+                  )}
+                </td>
 
                   {/* Lien pour supprimer le topic */}
-            <td><button
-              onClick={() => handleDelete(topic.id)}
-              disabled={user?.email !== topic.AuthorId}
-            >
-             <img
-                  src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png"
-                  alt="Delete"
-                  style={{ width: "16px", height: "16px" }}
-                  className='disabled-link'
-                />
-              </button></td>
+                <td>
+                  {user?.email === topic.AuthorId && (
+                    <button onClick={() => handleDelete(topic.id)}>
+                      <img
+                        src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png"
+                        alt="Delete"
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                    </button>
+                  )}
+                </td>
               </tr>
             ))
           )}
         </tbody>
-      </table>
-
-      
+      </table>     
     </div>
     </>
-  );
- 
+  ); 
 }

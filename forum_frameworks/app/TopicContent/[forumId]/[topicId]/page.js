@@ -103,22 +103,29 @@ export default function TopicContent() {
       setImageFiles(["/images/profiledefault.jpg"]); // Image par défaut en cas d'erreur
     }
   };
+   // Convertir Timestamp en date lisible
+   const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+    const date = timestamp.toDate();
+    return date.toLocaleString();
+  };
+
   const getUserDocumentByUserId = async (db, userId) => {
     try {
-      // Créer une requête pour rechercher le document dont le champ UserId correspond à userId
+      // Création d une requête pour rechercher le document dont le champ UserId correspond à userId
       const usersCollectionRef = collection(db, "Users");
       const q = query(usersCollectionRef, where("UserId", "==", userId));
   
-      // Exécuter la requête
+      
       const querySnapshot = await getDocs(q);
   
       if (querySnapshot.empty) {
         console.error("No user document found with the specified UserId.");
-        return null; // Si aucun document trouvé
+        return null; 
       }
   
-      // Retourner le premier document trouvé
-      const userDoc = querySnapshot.docs[0]; // Vous pouvez parcourir tous les documents si nécessaire
+      // Retourne le premier document trouvé
+      const userDoc = querySnapshot.docs[0]; 
       return { id: userDoc.id, ...userDoc.data() };
     } catch (error) {
       console.error("Error fetching user document:", error);
@@ -155,24 +162,37 @@ export default function TopicContent() {
   
   //Fonction permettant la mise à jour du nombre de commentaires
   const updateCommentCount = async (increment) => {
+    if (!auth.currentUser) {
+      console.error("User is not authenticated.");
+      return;
+    }
+  
     try {
       const topicDocRef = doc(db, `Forums/${forumId}/Topics/${topicId}`);
-      await getDoc(topicDocRef); // Vérifie si le document existe
+      const topicDoc = await getDoc(topicDocRef);
+  
+      if (!topicDoc.exists()) {
+        console.error("Topic not found.");
+        return;
+      }
+  
+      const currentCommentCount = topicDoc.data().CommentCount || 0;
+      const newCommentCount = increment
+        ? currentCommentCount + 1
+        : Math.max(0, currentCommentCount - 1);
+  
+      console.log("Attempting to update CommentCount to:", newCommentCount);
+  
       await updateDoc(topicDocRef, {
-        CommentCount: increment ? topic.CommentCount + 1 : Math.max(0, topic.CommentCount - 1),
+        CommentCount: newCommentCount, // Seul champ modifié
       });
   
-      // Met à jour localement le topic pour éviter de refetcher  
-      setTopic((prevTopic) => ({
-        ...prevTopic,
-        CommentCount: increment
-          ? prevTopic.CommentCount + 1
-          : Math.max(0, prevTopic.CommentCount - 1),
-      }));
+      console.log(`CommentCount updated to ${newCommentCount}`);
     } catch (error) {
-      console.error("Error updating commentCount:", error);
+      console.error("Error updating CommentCount:", error);
     }
   };
+  
   
   const handleDelete = async (commentId) => {
     if (!commentId) return;
@@ -249,11 +269,14 @@ export default function TopicContent() {
 
     try {
       const commentsRef = collection(db, `Forums/${forumId}/Topics/${topicId}/Comments`);
+      const userDoc = await getUserDocumentByUserId(db, auth.currentUser.uid);
       await addDoc(commentsRef, {
         Content: content,
         AuthorId: auth.currentUser.email,
+        CreateAuthor: userDoc.DateCreateAccount,
+        NbrePublicationAuthor: userDoc.NbrePublication,
         CreatedAt: new Date(),
-        URLProfile: imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg",
+        URLProfile: userDoc.ProfilePicture
       });
 
       setContent('');
@@ -275,11 +298,11 @@ export default function TopicContent() {
   };
 
   return (
-    <>
+<>
       <Headerpublic />
       <button
         className="btn btn-professional"
-        onClick={() => router.back()}>
+        onClick={() => router.back()} >
         <span className="icon">←</span> Return to topics
       </button>
       <div className="container mt-4">
@@ -309,28 +332,34 @@ export default function TopicContent() {
         <h1>Topic: {topic?.Title || "Loading..."}</h1>
         <p>{topic?.Content}</p>
         <h2>Comments:</h2>
-        <ul>
+        <ul className="list-unstyled">
           {comments.map((comment, index) => (
-            <li key={index}>
-              <img
-                src={comment.URLProfile || "/images/profiledefault.jpg"}
-                alt="Profile"
-                className="rounded-circle"
-                width={40}
-                height={40}
-              />
-              <strong>{comment.AuthorId}</strong>: {comment.Content}
-              <button
-              onClick={() => handleDelete(comment.id)}
-              disabled={user?.email !== comment.AuthorId}
-            >
-             <img           
-                  src="/images/recycle.png"
-                  alt="Delete"
-                  style={{ width: "16px", height: "16px" }}
-                  className='disabled-link'
+            <li key={index} className="border-bottom py-3">
+              <div className="d-flex align-items-center">
+                <img
+                  src={comment.URLProfile || "/images/profiledefault.jpg"}
+                  alt="Profile"
+                  className="rounded-circle me-3"
+                  width={40}
+                  height={40}
                 />
-              </button>
+                <div>
+                  <strong>{comment.AuthorId}</strong> Member since <strong>{formatTimestamp(comment.CreateAuthor)}</strong> Total publications: <strong>{comment.NbrePublicationAuthor}</strong> 
+                  <p>{comment.Content}</p>
+                  <p className="text-muted">
+                    <small>Posted on {formatTimestamp(comment.CreatedAt)}</small>
+                  </p>
+                  {user?.email === comment.AuthorId && (
+                    <button onClick={() => handleDelete(comment.id)} className="btn btn-danger btn-sm">
+                      <img
+                        src="/images/recycle.png"
+                        alt="Delete"
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                    </button>
+                  )}
+                </div>
+              </div>
             </li>
           ))}
         </ul>
