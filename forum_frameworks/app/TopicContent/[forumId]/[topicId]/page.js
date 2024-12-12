@@ -148,6 +148,7 @@ export default function TopicContent() {
       await updateDoc(userDocRef, { NbrePublication: newCount });
   
       console.log(`NbrePublication updated to ${newCount}`);
+
     } catch (error) {
       console.error("Error updating NbrePublication:", error);
     }
@@ -239,6 +240,27 @@ export default function TopicContent() {
     }
   };
 
+
+  //envoyer une notification aux utilisateurs abonnées au topic
+
+  async function send() {
+    const message = user ? `${user.email} a commenté votre topic` : "Utilisateur non connecté";
+      const response = await fetch('/api/send-message', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+          
+              message: message,
+              userEmail: user.email
+          })
+      });
+     if(response.ok) {
+      alert( `Le message a bien été envoyé par ${user.email} et le contenu est ${message}`);
+     }
+  }
+  // Fonction de soumission du formulaire des commentaires
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -256,6 +278,7 @@ export default function TopicContent() {
         URLProfile: imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg",
       });
 
+      await send();
       setContent('');
       setIsEditing(false);
       setError('');
@@ -267,12 +290,16 @@ export default function TopicContent() {
         ...doc.data(),
       }));
       setComments(commentsData);
+
       updateCommentCount(true);
       await updatePublicationCount(auth.currentUser.uid, true);
+
     } catch (error) {
       setError('Error adding comment: ' + error.message);
     }
   };
+
+  
 
   return (
     <>
