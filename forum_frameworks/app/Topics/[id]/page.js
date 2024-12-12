@@ -1,7 +1,7 @@
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../common/init';
-import { collection, query, getDocs, addDoc , deleteDoc, doc,getDoc, updateDoc} from "firebase/firestore";
+import { collection, query, getDocs, addDoc , deleteDoc, doc,getDoc, updateDoc, where} from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
@@ -73,6 +73,60 @@ const handleEditClick = () => {
     console.log("You must be logged in to add a topic.");
   }
 };
+
+
+
+const getUserDocumentByUserId = async (db, userId) => {
+  try {
+    // Créer une requête pour rechercher le document dont le champ UserId correspond à userId
+    const usersCollectionRef = collection(db, "Users");
+    const q = query(usersCollectionRef, where("UserId", "==", userId));
+
+    // Exécuter la requête
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      console.error("No user document found with the specified UserId.");
+      return null; // Si aucun document trouvé
+    }
+
+    // Retourner le premier document trouvé
+    const userDoc = querySnapshot.docs[0]; // Vous pouvez parcourir tous les documents si nécessaire
+    return { id: userDoc.id, ...userDoc.data() };
+  } catch (error) {
+    console.error("Error fetching user document:", error);
+    return null;
+  }
+};
+const updatePublicationCount = async (userId, increment) => {
+  try {
+    // Récupération du document utilisateur par UserId
+    const userDoc = await getUserDocumentByUserId(db, userId);
+    
+    if (!userDoc) {
+      console.error("User not found.");
+      return;
+    }
+
+    // Récupérer la valeur actuelle de NbrePublication
+    const currentCount = userDoc.NbrePublication || 0;
+
+    // Calcul de la nouvelle valeur
+    const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+    // Référence vers le document utilisateur
+    const userDocRef = doc(db, "Users", userDoc.id);
+
+    // Mettre à jour la valeur de NbrePublication dans Firestore
+    await updateDoc(userDocRef, { NbrePublication: newCount });
+
+    console.log(`NbrePublication updated to ${newCount}`);
+  } catch (error) {
+    console.error("Error updating NbrePublication:", error);
+  }
+};
+
+
 const updateTopicCount = async (increment) => {
   try {
     // Référence vers le document Forum
@@ -153,6 +207,7 @@ const handleSubmit = async (e) => {
         setIsEditing(false);
 
         updateTopicCount(true);
+        await updatePublicationCount(currentUser.uid, true);
     } catch (error) {
         setError('Error adding topic: ' + error.message);
     }
@@ -203,6 +258,7 @@ const handleDelete = async (topicId) => {
 
     alert("Topic deleted successfully!");
     updateTopicCount(false);
+    await  updatePublicationCount(auth.currentUser.uid, false);
   } catch (error) {
     console.error("Error deleting topic:", error);
 
@@ -239,7 +295,7 @@ const handleDelete = async (topicId) => {
        <div className="container mt-4">
        <form onSubmit={handleSubmit}>
            <div className="form-group">
-               <label htmlFor="Title">Titre</label>
+               <label htmlFor="Title">Title</label>
                <input
                    type="text"
                    className="form-control"
@@ -249,7 +305,7 @@ const handleDelete = async (topicId) => {
                />
            </div>
            <div className="form-group">
-               <label htmlFor="Content">Contenu</label>
+               <label htmlFor="Content">Content</label>
                <textarea
                    className="form-control"
                    id="content"
@@ -272,7 +328,7 @@ const handleDelete = async (topicId) => {
 
       </div>
     <div className="container mt-4">
-      <h1>Topics forforum {params.id}</h1>
+      <h1>Topics for forum {params.id}</h1>
       <table className="table table-striped table-hover">
         <thead>
           <tr>
