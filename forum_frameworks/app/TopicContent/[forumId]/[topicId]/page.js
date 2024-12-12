@@ -2,7 +2,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import init from '../../../common/init';
 import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
-import { collection, doc, getDocs, getDoc, addDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, addDoc, deleteDoc, updateDoc, where,query } from "firebase/firestore";
 import { useState, useEffect } from 'react';
 import Headerpublic from '@/app/Components/headerpublic';
 import { useParams } from 'next/navigation';
@@ -103,7 +103,56 @@ export default function TopicContent() {
       setImageFiles(["/images/profiledefault.jpg"]); // Image par défaut en cas d'erreur
     }
   };
-
+  const getUserDocumentByUserId = async (db, userId) => {
+    try {
+      // Créer une requête pour rechercher le document dont le champ UserId correspond à userId
+      const usersCollectionRef = collection(db, "Users");
+      const q = query(usersCollectionRef, where("UserId", "==", userId));
+  
+      // Exécuter la requête
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        console.error("No user document found with the specified UserId.");
+        return null; // Si aucun document trouvé
+      }
+  
+      // Retourner le premier document trouvé
+      const userDoc = querySnapshot.docs[0]; // Vous pouvez parcourir tous les documents si nécessaire
+      return { id: userDoc.id, ...userDoc.data() };
+    } catch (error) {
+      console.error("Error fetching user document:", error);
+      return null;
+    }
+  };
+  const updatePublicationCount = async (userId, increment) => {
+    try {
+      // Récupération du document utilisateur par UserId
+      const userDoc = await getUserDocumentByUserId(db, userId);
+      
+      if (!userDoc) {
+        console.error("User not found.");
+        return;
+      }
+  
+      // Récupérer la valeur actuelle de NbrePublication
+      const currentCount = userDoc.NbrePublication || 0;
+  
+      // Calcul de la nouvelle valeur
+      const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
+  
+      // Référence vers le document utilisateur
+      const userDocRef = doc(db, "Users", userDoc.id);
+  
+      // Mettre à jour la valeur de NbrePublication dans Firestore
+      await updateDoc(userDocRef, { NbrePublication: newCount });
+  
+      //console.log(`NbrePublication updated to ${newCount}`);
+    } catch (error) {
+      console.error("Error updating NbrePublication:", error);
+    }
+  };
+  
   //Fonction permettant la mise à jour du nombre de commentaires
   const updateCommentCount = async (increment) => {
     try {
@@ -170,6 +219,7 @@ export default function TopicContent() {
       alert("Comment deleted successfully.");
       // decrementer le nombre de commentaires
       updateCommentCount(false);
+      await updatePublicationCount(auth.currentUser.uid, false);
     } catch (error) {
       console.error("Error deleting comment:", error);
   
@@ -189,6 +239,27 @@ export default function TopicContent() {
     }
   };
 
+
+  //envoyer une notification aux utilisateurs abonnées au topic
+
+  async function send() {
+    const message = user ? `${user.email} a commenté votre topic` : "Utilisateur non connecté";
+      const response = await fetch('/api/send-message', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+          
+              message: message,
+              userEmail: user.email
+          })
+      });
+     if(response.ok) {
+      alert( `Le message a bien été envoyé par ${user.email} et le contenu est ${message}`);
+     }
+  }
+  // Fonction de soumission du formulaire des commentaires
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -206,6 +277,7 @@ export default function TopicContent() {
         URLProfile: imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg",
       });
 
+      await send();
       setContent('');
       setIsEditing(false);
       setError('');
@@ -217,11 +289,16 @@ export default function TopicContent() {
         ...doc.data(),
       }));
       setComments(commentsData);
+
       updateCommentCount(true);
+      await updatePublicationCount(auth.currentUser.uid, true);
+    
     } catch (error) {
       setError('Error adding comment: ' + error.message);
     }
   };
+
+  
 
   return (
     <>

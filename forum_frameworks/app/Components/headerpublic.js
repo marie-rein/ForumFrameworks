@@ -5,19 +5,22 @@ import Link from "next/link";
 import init from "../common/init";
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
+import { getToken, onMessage } from "firebase/messaging";
+import { FaBell } from 'react-icons/fa';
+
 
 function Headerpublic() {
-  const { auth } = init();
+  const { auth, messaging } = init();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null); // Utilisateur connecté
   const [imageFiles, setImageFiles] = useState([]);
+  const [notifications, setNotifications] = useState([]); // État pour les notifications
+  const [showNotifications, setShowNotifications] = useState(false);
   const storage = getStorage();
 
-  // État pour le message dans le header
   const [etatUser, setEtatUser] = useState("Guest");
 
-  // Vérifier l'état de connexion de l'utilisateur
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
@@ -28,12 +31,9 @@ function Headerpublic() {
         setUser(null);
       }
     });
-
-    // Nettoyage de l'abonnement
     return () => unsubscribe();
   }, [auth]);
 
-  // Récupérer l'image de profil de l'utilisateur
   const fetchProfilePictures = async (currentUser) => {
     const listRef = ref(storage, `${currentUser.uid}/ProfilePicture`);
 
@@ -50,8 +50,6 @@ function Headerpublic() {
         itemsWithMetadata.sort((a, b) => new Date(b.timeCreated) - new Date(a.timeCreated));
         const lastImageUrl = await getDownloadURL(itemsWithMetadata[0].itemRef);
         setImageFiles([lastImageUrl]);
-      } else {
-        console.log("No profile pictures found.");
       }
     } catch (error) {
       console.error("Error fetching profile pictures:", error);
@@ -64,12 +62,10 @@ function Headerpublic() {
     }
   }, [user]);
 
-  // Gestion de la déconnexion
   const logOut = (e) => {
     e.preventDefault();
     signOut(auth)
       .then(() => {
-        console.log("Logged out");
         router.push("/");
       })
       .catch((error) => {
@@ -77,7 +73,6 @@ function Headerpublic() {
       });
   };
 
-  // Gestion de la connexion
   const submitForm = (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -90,8 +85,44 @@ function Headerpublic() {
       .catch((error) => {
         alert("User does not exist, Please create an account");
         router.push("../inscription");
-        console.error("Erreur :", error.message);
       });
+  };
+
+  const setup = async () => {
+    if (!messaging) {
+      console.error("Firebase Messaging n'est pas initialisé correctement.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      console.log("L'utilisateur n'a pas donné la permission");
+      return;
+    }
+
+    const token = await getToken(messaging, {
+      vapidKey: "BMwOfky-nh7p7Tra1ybKrg8GV4g77pSWAL1lxgzhW6lgwV_VhHMg4BMwYxJLRicmQGio7e3Xq70w7NVbGLbJCko",
+    });
+
+    console.log("Token: " + token);
+
+    await fetch("/api/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, topic: "Commentaires" }),
+    });
+
+    onMessage(messaging, (payload) => {
+      if (payload.data && payload.data.message && user.email !== payload.data.userEmail) {
+        console.log("Notification reçue de : ", payload.data.userEmail);
+        console.log("Message: " + payload.data.message);
+        const newNotification = {
+          message: payload.data.message,
+          time: new Date().toLocaleTimeString(),
+        };
+        setNotifications((prev) => [newNotification, ...prev]); // Ajouter la notification
+      }
+    });
   };
 
   return (
@@ -161,24 +192,49 @@ function Headerpublic() {
                   ) : (
                     <>
                       {user && (
-                        <Link href={`../Profil/${user.uid}`}>
-                          <img
-                           src={imageFiles.length > 0? imageFiles[0] : "/images/profiledefault.jpg"}                   
-                            alt="User Profile"   
-                            id="logoConnexion"                
-                            className="rounded-circle"
-                            width={70}
-                            height={70}
-                          />
-                        </Link>
-                          
+                        <div>
+                          <Link href={`../Profil/${user.uid}`}>
+                            <img
+                              src={imageFiles.length > 0 ? imageFiles[0] : "/images/profiledefault.jpg"}
+                              alt="User Profile"
+                              id="logoConnexion"
+                              className="rounded-circle"
+                              width={70}
+                              height={70}
+                            />
+                          </Link>
+                          <button
+                            className="btn btn-primary"
+                            onClick={setup}
+                            style={{ marginLeft: "10px" }}
+                          >
+                            Register to Notifications
+                          </button>
+                        </div>
+                      )}
 
-                      )
-                      }
-      
+                      
+                            
                       <button className="btn btn-danger" onClick={logOut}>
                         Log Out
                       </button>
+
+                        {/* Notifications Icon */}
+                        <div className="notification-section">
+                <button onClick={() => setShowNotifications(!showNotifications)}>
+                  <FaBell />
+                  {notifications.length > 0 && <span>{notifications.length}</span>}
+                </button>
+                {showNotifications && (
+                  <ul>
+                    {notifications.map((notif, index) => (
+                      <li key={index}>
+                        {notif.message} - <small>{notif.time}</small>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
                     </>
                   )}
                 </div>
@@ -187,6 +243,7 @@ function Headerpublic() {
           </div>
         </nav>
       </div>
+
     </header>
   );
 }
