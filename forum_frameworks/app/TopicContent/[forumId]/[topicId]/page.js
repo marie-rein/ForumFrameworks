@@ -147,7 +147,8 @@ export default function TopicContent() {
       // Mettre à jour la valeur de NbrePublication dans Firestore
       await updateDoc(userDocRef, { NbrePublication: newCount });
   
-      //console.log(`NbrePublication updated to ${newCount}`);
+      console.log(`NbrePublication updated to ${newCount}`);
+
     } catch (error) {
       console.error("Error updating NbrePublication:", error);
     }
@@ -292,7 +293,7 @@ export default function TopicContent() {
 
       updateCommentCount(true);
       await updatePublicationCount(auth.currentUser.uid, true);
-    
+
     } catch (error) {
       setError('Error adding comment: ' + error.message);
     }
