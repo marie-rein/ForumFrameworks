@@ -1,7 +1,7 @@
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import {getMessaging} from 'firebase-admin/messaging'
-//import serviceAccount from '../keys.json';
+import serviceAccount from '../keys.json';
 
 export async function POST(request){
     const {token, topic} = await request.json()
